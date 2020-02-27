@@ -43,10 +43,10 @@ export class AppEnvStack extends Stack implements ICoreAppEnv {
   constructor(account: ICoreAccount, name: string, props?: AppEnvStackProps) {
     super(account.Project.Scope, `Core-${account.Name}-${name}-AppEnv`, {
       ...props,
-      //   env: {  TODO:
-      //     account: accountStack.account,
-      //     region: accountStack.region,
-      //   },
+      env: {
+        account: props?.env?.account || account.account,
+        region: props?.env?.region || account.region,
+      },
     });
 
     const { networkBuilder } = props || {};
@@ -100,11 +100,12 @@ export class AppEnvStack extends Stack implements ICoreAppEnv {
     this.Zone = new HostedZone(this, 'Zone', {
       zoneName: `${name}.${rootZoneName}`.toLowerCase(),
     });
-    new ZoneDelegationRecord(this, 'ZoneDelegation', {
-      zone: this.Account.Project.Zone,
-      recordName: this.Zone.zoneName,
-      nameServers: this.Zone.hostedZoneNameServers as string[],
-    });
+
+    // new ZoneDelegationRecord(this, 'ZoneDelegation', {
+    //   zone: this.Account.Project.Zone,
+    //   recordName: this.Zone.zoneName,
+    //   nameServers: this.Zone.hostedZoneNameServers as string[],
+    // }); // TODO: Cross Account ZoneDelegationRecord
 
     RemoteZone.export(`Core${this.Account.Name}${this.Name}`, this.Zone);
   }

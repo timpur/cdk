@@ -1,4 +1,4 @@
-import { Construct, Stack, StackProps, CfnOutput, Fn } from '@aws-cdk/core';
+import { Construct, Stack, StackProps, CfnOutput, Fn, Environment } from '@aws-cdk/core';
 import { HostedZone, IHostedZone } from '@aws-cdk/aws-route53';
 import { IRepository, Repository } from '@aws-cdk/aws-codecommit';
 import { ICoreProject, RemoteZone, RemoteCodeRepo } from '.';
@@ -6,6 +6,7 @@ import { Role, ServicePrincipal, ManagedPolicy, IRole } from '@aws-cdk/aws-iam';
 
 export interface ProjectStackProps extends StackProps {
   tld: string;
+  env: Environment;
 }
 
 export class ProjectStack extends Stack implements ICoreProject {

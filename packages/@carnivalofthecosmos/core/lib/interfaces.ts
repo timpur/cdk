@@ -25,12 +25,12 @@ export interface ICoreProject extends INamespace, IEnv {
   CdkMasterRoleStaticArn: string;
 }
 
-export interface ICoreAccount extends INamespace {
+export interface ICoreAccount extends INamespace, IEnv {
   Project: ICoreProject;
   CdkCrossAccountRole?: IRole;
 }
 
-export interface ICoreAppEnv extends INamespace {
+export interface ICoreAppEnv extends INamespace, IEnv {
   Account: ICoreAccount;
   Vpc: IVpc;
   Zone: IHostedZone;

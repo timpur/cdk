@@ -25,6 +25,7 @@ import {
 } from '.';
 import { RemoteBuildProject } from './remote';
 import { throws } from 'assert';
+import { Role } from '@aws-cdk/aws-ec2/node_modules/@aws-cdk/aws-iam';
 
 export interface CiCdStackProps extends StackProps {
   networkBuilder: NetworkBuilder;
@@ -41,7 +42,7 @@ export class CiCdStack extends Stack implements ICoreCiCd {
   readonly CdkDeploy: Project;
 
   constructor(account: ICoreAccount, props: CiCdStackProps) {
-    super(account.Project.Scope, `Core-${account.Name}-CiCd`);
+    super(account.Project.Scope, `Core-${account.Name}-CiCd`, props);
 
     const { networkBuilder } = props;
 
@@ -96,10 +97,11 @@ export class CiCdStack extends Stack implements ICoreCiCd {
       ],
     });
 
+    const { Repo, CdkMasterRole } = this.Account.Project;
     const pipeline = new CdkPipeline(this, 'CdkPipeline', {
       name: 'Core-Cdk-Pipeline',
-      cdkRepo: this.Account.Project.Repo,
-      deployRole: this.Account.Project.CdkMasterRole,
+      cdkRepo: Repo,
+      deployRole: Role.fromRoleArn(this, CdkMasterRole.node.id, CdkMasterRole.roleArn), // TODO: How to deal with cloning (changing scope)
       // deployVpc: this.Vpc,
       deployEnvs: {
         NPM_REGISTRY_API_KEY: { value: 'TODO: Remove This' },
