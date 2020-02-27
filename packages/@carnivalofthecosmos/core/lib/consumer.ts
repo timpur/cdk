@@ -2,11 +2,11 @@ import { Construct, Stack, StackProps } from '@aws-cdk/core';
 import { IProject } from '@aws-cdk/aws-codebuild';
 import { IRepository, Repository } from '@aws-cdk/aws-codecommit';
 import {
-  ICoreProject,
-  ICoreAccount,
-  ICoreAppEnv,
-  ICoreEcsAppEnv,
-  ICoreCiCd,
+  ICoreConsumerProject,
+  ICoreConsumerAccount,
+  ICoreConsumerAppEnv,
+  ICoreConsumerEcsAppEnv,
+  ICoreConsumerCiCd,
   IConsumerProject,
   IConsumerAccount,
   IConsumerAppEnv,
@@ -19,11 +19,12 @@ import {
   ImportedCiCd,
   CdkPipeline,
 } from '.';
+import { Role } from '@aws-cdk/aws-iam';
 
 export class ConsumerProjectStack extends Stack implements IConsumerProject {
   readonly Scope: Construct;
   readonly Name: string;
-  readonly Core: ICoreProject;
+  readonly Core: ICoreConsumerProject;
   readonly Repo: IRepository;
 
   constructor(scope: Construct, name: string, props?: StackProps) {
@@ -31,7 +32,7 @@ export class ConsumerProjectStack extends Stack implements IConsumerProject {
 
     this.Scope = scope;
     this.Name = name;
-    this.Core = new ImportedProject(this);
+    this.Core = new ImportedProject(this, this.account);
 
     this.Repo = new Repository(this, 'CdkRepo', {
       repositoryName: `app-${this.Name}-cdk-repo`.toLocaleLowerCase(),
@@ -42,7 +43,7 @@ export class ConsumerProjectStack extends Stack implements IConsumerProject {
 export class ConsumerAccountStack extends Stack implements IConsumerAccount {
   readonly Project: ConsumerProjectStack;
   readonly Name: string;
-  readonly Core: ICoreAccount;
+  readonly Core: ICoreConsumerAccount;
 
   constructor(project: ConsumerProjectStack, name: string, props?: StackProps) {
     super(project.Scope, `App-${project.Name}-${name}-Account`, props);
@@ -56,7 +57,7 @@ export class ConsumerAccountStack extends Stack implements IConsumerAccount {
 export class ConsumerAppEnvStack extends Stack implements IConsumerAppEnv {
   readonly Account: ConsumerAccountStack;
   readonly Name: string;
-  readonly Core: ICoreAppEnv;
+  readonly Core: ICoreConsumerAppEnv;
 
   constructor(account: ConsumerAccountStack, name: string, props?: StackProps) {
     super(account.Project.Scope, `App-${account.Project.Name}-${account.Name}-${name}-AppEnv`, props);
@@ -68,7 +69,7 @@ export class ConsumerAppEnvStack extends Stack implements IConsumerAppEnv {
 }
 
 export class ConsumerEcsAppEnvStack extends ConsumerAppEnvStack implements IConsumerEcsAppEnv {
-  readonly Core: ICoreEcsAppEnv;
+  readonly Core: ICoreConsumerEcsAppEnv;
 
   constructor(account: ConsumerAccountStack, name: string, props?: StackProps) {
     super(account, name, props);
@@ -82,7 +83,7 @@ export class ConsumerEcsAppEnvStack extends ConsumerAppEnvStack implements ICons
 export class ConsumerCiCdStack extends Stack implements IConsumerCiCd {
   readonly Account: ConsumerAccountStack;
   readonly Name: string;
-  readonly Core: ICoreCiCd;
+  readonly Core: ICoreConsumerCiCd;
   readonly DeployPipeline: CdkPipeline;
   readonly DeployProject: IProject;
 
@@ -96,22 +97,14 @@ export class ConsumerCiCdStack extends Stack implements IConsumerCiCd {
     this.DeployPipeline = new CdkPipeline(this, 'CdkPipeline', {
       name: `App-${this.Account.Project.Name}-Cdk-Pipeline`,
       cdkRepo: this.Account.Project.Repo,
+      deployRole: Role.fromRoleArn(this, 'CoreCdkMasterRole', this.Account.Project.Core.CdkMasterRoleStaticArn, {
+        mutable: false,
+      }),
       deployEnvs: {
         NPM_REGISTRY_API_KEY: { value: 'TODO: Key here' },
       },
       deployStacks: [`App-${this.Account.Project.Name}-*`],
     });
     this.DeployProject = this.DeployPipeline.Deploy;
-
-    // TODO: get the right roles !!
-    const addBuildManagedPolicy = (name: string) => {
-      this.DeployPipeline.Deploy.role?.addManagedPolicy({ managedPolicyArn: `arn:aws:iam::aws:policy/${name}` });
-    };
-    // addBuildManagedPolicy('AWSCloudFormationFullAccess');
-    // addBuildManagedPolicy('AmazonRoute53FullAccess');
-    // addBuildManagedPolicy('AmazonECS_FullAccess');
-    // addBuildManagedPolicy('AmazonVPCFullAccess');
-    // addBuildManagedPolicy('AmazonEC2FullAccess');
-    addBuildManagedPolicy('AdministratorAccess'); // FIXME:
   }
 }

@@ -1,6 +1,6 @@
 import { Construct, Stack, StackProps } from '@aws-cdk/core';
 import { NetworkBuilder } from '@aws-cdk/aws-ec2/lib/network-util';
-import { ICoreProject, ICoreAccount } from '.';
+import { ICoreProject, ICoreAccount, ICoreAppEnv, ICoreConsumerProject, ICoreConsumerAccount } from '.';
 import { Role, ArnPrincipal, ManagedPolicy } from '@aws-cdk/aws-iam';
 
 export interface AccountStackProps extends StackProps {
@@ -9,6 +9,7 @@ export interface AccountStackProps extends StackProps {
 
 export class AccountStack extends Stack implements ICoreAccount {
   readonly Project: ICoreProject;
+  readonly AppEnvs: ICoreAppEnv[];
   readonly Name: string;
   readonly NetworkBuilder: NetworkBuilder;
   readonly CdkCrossAccountRole?: Role;
@@ -25,6 +26,8 @@ export class AccountStack extends Stack implements ICoreAccount {
     const { cidr } = props;
 
     this.Project = project;
+    this.Project.Accounts.push(this);
+    this.AppEnvs = [];
     this.Name = name;
     this.NetworkBuilder = new NetworkBuilder(cidr);
 
@@ -39,10 +42,10 @@ export class AccountStack extends Stack implements ICoreAccount {
   }
 }
 
-export class ImportedAccount extends Construct implements ICoreAccount {
-  readonly Project: ICoreProject;
+export class ImportedAccount extends Construct implements ICoreConsumerAccount {
+  readonly Project: ICoreConsumerProject;
   readonly Name: string;
-  constructor(scope: Construct, project: ICoreProject, name: string) {
+  constructor(scope: Construct, project: ICoreConsumerProject, name: string) {
     super(scope, `Core-${name}-Account`);
 
     this.Project = project;

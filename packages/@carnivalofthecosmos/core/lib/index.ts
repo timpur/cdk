@@ -11,6 +11,11 @@ export {
   IConsumerAppEnv,
   IConsumerEcsAppEnv,
   IConsumerCiCd,
+  ICoreConsumerProject,
+  ICoreConsumerAccount,
+  ICoreConsumerAppEnv,
+  ICoreConsumerEcsAppEnv,
+  ICoreConsumerCiCd,
 } from './interfaces';
 export { ProjectStack, ProjectStackProps, ImportedProject } from './project';
 export { AccountStack, AccountStackProps, ImportedAccount } from './account';

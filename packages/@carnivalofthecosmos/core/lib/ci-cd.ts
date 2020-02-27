@@ -17,6 +17,8 @@ import { Role } from '@aws-cdk/aws-iam';
 import {
   ICoreAccount,
   ICoreCiCd,
+  ICoreConsumerAccount,
+  ICoreConsumerCiCd,
   RemoteVpc,
   RemoteZone,
   RemoteCluster,
@@ -40,66 +42,72 @@ export class CiCdStack extends Stack implements ICoreCiCd {
   readonly CdkDeploy: Project;
 
   constructor(account: ICoreAccount, props: CiCdStackProps) {
-    super(account.Project.Scope, `Core-${account.Name}-CiCd`, props);
+    super(account.Project.Scope, `Core-${account.Name}-CiCd`, {
+      ...props,
+      env: {
+        account: props?.env?.account || account.account,
+        region: props?.env?.region || account.region,
+      },
+    });
 
     const { networkBuilder } = props;
 
     this.Account = account;
     this.Name = 'CiCd';
 
-    this.Vpc = new Vpc(this, 'Vpc', {
-      cidr: networkBuilder.addSubnet(24),
-      maxAzs: 3,
-      subnetConfiguration: [
-        {
-          name: 'Main',
-          subnetType: SubnetType.ISOLATED,
-          cidrMask: 26,
-        },
-      ],
-    });
+    // this.Vpc = new Vpc(this, 'Vpc', {
+    //   cidr: networkBuilder.addSubnet(24),
+    //   maxAzs: 3,
+    //   subnetConfiguration: [
+    //     {
+    //       name: 'Main',
+    //       subnetType: SubnetType.ISOLATED,
+    //       cidrMask: 26,
+    //     },
+    //   ],
+    // });
 
-    const rootZoneName = this.Account.Project.Zone.zoneName;
-    this.Zone = new HostedZone(this, 'Zone', {
-      zoneName: `${this.Name}.${rootZoneName}`.toLowerCase(),
-    });
-    new ZoneDelegationRecord(this, 'ZoneDelegation', {
-      zone: this.Account.Project.Zone,
-      recordName: this.Zone.zoneName,
-      nameServers: this.Zone.hostedZoneNameServers as string[],
-    });
+    // const rootZoneName = this.Account.Project.Zone.zoneName;
+    // this.Zone = new HostedZone(this, 'Zone', {
+    //   zoneName: `${this.Name}.${rootZoneName}`.toLowerCase(),
+    // });
+    // new ZoneDelegationRecord(this, 'ZoneDelegation', {
+    //   zone: this.Account.Project.Zone,
+    //   recordName: this.Zone.zoneName,
+    //   nameServers: this.Zone.hostedZoneNameServers as string[],
+    // });
 
-    this.Cluster = new Cluster(this, 'Cluster', {
-      vpc: this.Vpc,
-      clusterName: `Core-${this.Account.Name}-${this.Name}-Cluster`,
-    });
+    // this.Cluster = new Cluster(this, 'Cluster', {
+    //   vpc: this.Vpc,
+    //   clusterName: `Core-${this.Account.Name}-${this.Name}-Cluster`,
+    // });
 
-    this.Cluster.addCapacity('Capacity', {
-      instanceType: new InstanceType('t2.medium'),
-      desiredCapacity: 1,
-      minCapacity: 1,
-      maxCapacity: 5,
-    });
+    // this.Cluster.addCapacity('Capacity', {
+    //   instanceType: new InstanceType('t2.medium'),
+    //   desiredCapacity: 1,
+    //   minCapacity: 1,
+    //   maxCapacity: 5,
+    // });
 
-    this.Alb = new ApplicationLoadBalancer(this, 'Alb', {
-      vpc: this.Vpc,
-    });
-    this.HttpListener = this.Alb.addListener('HttpListener', {
-      protocol: ApplicationProtocol.HTTP,
-      defaultTargetGroups: [
-        new ApplicationTargetGroup(this, 'DefaultTargetGroup', {
-          vpc: this.Vpc,
-          protocol: ApplicationProtocol.HTTP,
-          targetType: TargetType.INSTANCE,
-        }),
-      ],
-    });
+    // this.Alb = new ApplicationLoadBalancer(this, 'Alb', {
+    //   vpc: this.Vpc,
+    // });
+    // this.HttpListener = this.Alb.addListener('HttpListener', {
+    //   protocol: ApplicationProtocol.HTTP,
+    //   defaultTargetGroups: [
+    //     new ApplicationTargetGroup(this, 'DefaultTargetGroup', {
+    //       vpc: this.Vpc,
+    //       protocol: ApplicationProtocol.HTTP,
+    //       targetType: TargetType.INSTANCE,
+    //     }),
+    //   ],
+    // });
 
     const { Repo, CdkMasterRole } = this.Account.Project;
     const pipeline = new CdkPipeline(this, 'CdkPipeline', {
       name: 'Core-Cdk-Pipeline',
       cdkRepo: Repo,
-      deployRole: Role.fromRoleArn(this, CdkMasterRole.node.id, CdkMasterRole.roleArn), // TODO: How to deal with cloning (changing scope)
+      deployRole: Role.fromRoleArn(this, CdkMasterRole.node.id, CdkMasterRole.roleArn, { mutable: false }),
       // deployVpc: this.Vpc,
       deployEnvs: {
         NPM_REGISTRY_API_KEY: { value: 'TODO: Remove This' },
@@ -108,28 +116,17 @@ export class CiCdStack extends Stack implements ICoreCiCd {
     });
     this.CdkDeploy = pipeline.Deploy;
 
-    // // TODO: get the right roles !!
-    // const addBuildManagedPolicy = (name: string) => {
-    //   pipeline.Deploy.role?.addManagedPolicy({ managedPolicyArn: `arn:aws:iam::aws:policy/${name}` });
-    // };
-    // // addBuildManagedPolicy('AWSCloudFormationFullAccess');
-    // // addBuildManagedPolicy('AmazonRoute53FullAccess');
-    // // addBuildManagedPolicy('AmazonECS_FullAccess');
-    // // addBuildManagedPolicy('AmazonVPCFullAccess');
-    // // addBuildManagedPolicy('AmazonEC2FullAccess');
-    // addBuildManagedPolicy('AdministratorAccess'); // FIXME:
-
-    RemoteVpc.export(`Core${this.Account.Name}${this.Name}`, this.Vpc);
-    RemoteZone.export(`Core${this.Account.Name}${this.Name}`, this.Zone);
-    RemoteCluster.export(`Core${this.Account.Name}${this.Name}`, this.Cluster);
-    RemoteAlb.export(`Core${this.Account.Name}${this.Name}`, this.Alb);
-    RemoteApplicationListener.export(`Core${this.Account.Name}${this.Name}`, this.HttpListener);
+    // RemoteVpc.export(`Core${this.Account.Name}${this.Name}`, this.Vpc);
+    // RemoteZone.export(`Core${this.Account.Name}${this.Name}`, this.Zone);
+    // RemoteCluster.export(`Core${this.Account.Name}${this.Name}`, this.Cluster);
+    // RemoteAlb.export(`Core${this.Account.Name}${this.Name}`, this.Alb);
+    // RemoteApplicationListener.export(`Core${this.Account.Name}${this.Name}`, this.HttpListener);
     // RemoteBuildProject.export(`Core${this.Account.Name}${this.Name}`, this.CdkDeploy);
   }
 }
 
-export class ImportedCiCd extends Construct implements ICoreCiCd {
-  readonly Account: ICoreAccount;
+export class ImportedCiCd extends Construct implements ICoreConsumerCiCd {
+  readonly Account: ICoreConsumerAccount;
   readonly Name: string;
   readonly Vpc: IVpc;
   readonly Zone: IHostedZone;
@@ -138,7 +135,7 @@ export class ImportedCiCd extends Construct implements ICoreCiCd {
   readonly HttpListener: IApplicationListener;
   // readonly CdkDeploy: IProject;
 
-  constructor(scope: Construct, account: ICoreAccount) {
+  constructor(scope: Construct, account: ICoreConsumerAccount) {
     super(scope, `Core-${account.Name}-CiCd`);
 
     this.Account = account;

@@ -23,6 +23,9 @@ import {
   ICoreAccount,
   ICoreAppEnv,
   ICoreEcsAppEnv,
+  ICoreConsumerAccount,
+  ICoreConsumerAppEnv,
+  ICoreConsumerEcsAppEnv,
   RemoteVpc,
   RemoteZone,
   RemoteCluster,
@@ -52,6 +55,7 @@ export class AppEnvStack extends Stack implements ICoreAppEnv {
     const { networkBuilder } = props || {};
 
     this.Account = account;
+    this.Account.AppEnvs.push(this);
     this.Name = name;
 
     this.Vpc = this.Account.node.tryFindChild('SharedVpc') as Vpc;
@@ -149,8 +153,7 @@ export class EcsAppEnvStack extends AppEnvStack implements ICoreEcsAppEnv {
       ],
     });
 
-    // TODO:
-
+    // TODO: ?
     // this.httpListener = this.alb.addListener("HttpsListener", {
     //   port: 443,
     //   open: true
@@ -164,13 +167,13 @@ export class EcsAppEnvStack extends AppEnvStack implements ICoreEcsAppEnv {
 
 // Import
 
-export class ImportedAppEnv extends Construct implements ICoreAppEnv {
-  readonly Account: ICoreAccount;
+export class ImportedAppEnv extends Construct implements ICoreConsumerAppEnv {
+  readonly Account: ICoreConsumerAccount;
   readonly Name: string;
   readonly Vpc: IVpc;
   readonly Zone: IHostedZone;
 
-  constructor(scope: Construct, account: ICoreAccount, name: string) {
+  constructor(scope: Construct, account: ICoreConsumerAccount, name: string) {
     super(scope, `Core-${account.Name}-${name}-AppEnv`);
 
     this.Account = account;
@@ -180,13 +183,13 @@ export class ImportedAppEnv extends Construct implements ICoreAppEnv {
   }
 }
 
-export class ImportedEcsAppEnv extends ImportedAppEnv implements ICoreEcsAppEnv {
+export class ImportedEcsAppEnv extends ImportedAppEnv implements ICoreConsumerEcsAppEnv {
   readonly Cluster: ICluster;
   readonly Alb: IApplicationLoadBalancer;
   readonly HttpListener: IApplicationListener;
   // readonly HttpsListener: IApplicationListener;
 
-  constructor(scope: Construct, account: ICoreAccount, name: string) {
+  constructor(scope: Construct, account: ICoreConsumerAccount, name: string) {
     super(scope, account, name);
 
     this.Cluster = RemoteCluster.import(this, `Core${this.Account.Name}${this.Name}`, 'Cluster', this.Vpc);

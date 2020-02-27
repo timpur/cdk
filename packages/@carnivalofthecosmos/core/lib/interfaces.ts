@@ -7,6 +7,7 @@ import { IApplicationLoadBalancer, IApplicationListener } from '@aws-cdk/aws-ela
 import { IProject } from '@aws-cdk/aws-codebuild';
 import { IRole } from '@aws-cdk/aws-iam';
 
+// Common
 export interface INamespace extends Construct {
   Name: string;
 }
@@ -17,34 +18,55 @@ export interface IEnv {
 }
 
 // Core Interfaces
-export interface ICoreProject extends INamespace, IEnv {
-  Scope: Construct;
+
+// Core Project
+export interface ICoreConsumerProject extends INamespace, IEnv {
   Repo: IRepository;
   Zone: IHostedZone;
-  CdkMasterRole: IRole;
   CdkMasterRoleStaticArn: string;
 }
+export interface ICoreProject extends ICoreConsumerProject {
+  Scope: Construct;
+  Accounts: ICoreAccount[];
+  CdkMasterRole: IRole;
+}
 
-export interface ICoreAccount extends INamespace, IEnv {
+// Core Account
+export interface ICoreConsumerAccount extends INamespace, IEnv {
+  Project: ICoreConsumerProject;
+}
+export interface ICoreAccount extends ICoreConsumerAccount {
   Project: ICoreProject;
+  AppEnvs: ICoreAppEnv[];
   CdkCrossAccountRole?: IRole;
 }
 
-export interface ICoreAppEnv extends INamespace, IEnv {
-  Account: ICoreAccount;
+// Core App Env
+export interface ICoreConsumerAppEnv extends INamespace, IEnv {
+  Account: ICoreConsumerAccount;
   Vpc: IVpc;
   Zone: IHostedZone;
 }
+export interface ICoreAppEnv extends ICoreConsumerAppEnv {
+  Account: ICoreAccount;
+}
 
-export interface ICoreEcsAppEnv extends ICoreAppEnv {
+// Core Ecs App Env
+export interface ICoreConsumerEcsAppEnv extends ICoreConsumerAppEnv {
   Cluster: ICluster;
   Alb: IApplicationLoadBalancer;
   HttpListener: IApplicationListener;
   // HttpsListener: IApplicationListener;
 }
+export interface ICoreEcsAppEnv extends ICoreConsumerEcsAppEnv, ICoreAppEnv {
+  Account: ICoreAccount;
+}
 
-export interface ICoreCiCd extends ICoreEcsAppEnv {
-  CdkDeploy?: IProject;
+// Core CiCd
+export interface ICoreConsumerCiCd extends ICoreConsumerEcsAppEnv {}
+export interface ICoreCiCd extends ICoreConsumerCiCd, ICoreEcsAppEnv {
+  Account: ICoreAccount;
+  CdkDeploy: IProject;
 }
 
 // Consumer Interfaces
@@ -52,24 +74,24 @@ export interface ICoreConsumer<T> extends INamespace {
   Core: T;
 }
 
-export interface IConsumerProject extends ICoreConsumer<ICoreProject> {
+export interface IConsumerProject extends ICoreConsumer<ICoreConsumerProject> {
   Scope: Construct;
   Repo: IRepository;
 }
 
-export interface IConsumerAccount extends ICoreConsumer<ICoreAccount> {
+export interface IConsumerAccount extends ICoreConsumer<ICoreConsumerAccount> {
   Project: IConsumerProject;
 }
 
-export interface IConsumerAppEnv extends ICoreConsumer<ICoreAppEnv> {
+export interface IConsumerAppEnv extends ICoreConsumer<ICoreConsumerAppEnv> {
   Account: IConsumerAccount;
 }
 
-export interface IConsumerEcsAppEnv extends IConsumerAppEnv {
-  Core: ICoreEcsAppEnv;
+export interface IConsumerEcsAppEnv extends IConsumerAppEnv, ICoreConsumer<ICoreConsumerEcsAppEnv> {
+  Core: ICoreConsumerEcsAppEnv;
 }
 
-export interface IConsumerCiCd extends IConsumerEcsAppEnv {
-  Core: ICoreCiCd;
+export interface IConsumerCiCd extends IConsumerEcsAppEnv, ICoreConsumer<ICoreConsumerCiCd> {
+  Core: ICoreConsumerCiCd;
   DeployProject: IProject;
 }

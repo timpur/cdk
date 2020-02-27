@@ -1,7 +1,7 @@
 import { Construct, Stack, StackProps, CfnOutput, Fn, Environment } from '@aws-cdk/core';
 import { HostedZone, IHostedZone } from '@aws-cdk/aws-route53';
 import { IRepository, Repository } from '@aws-cdk/aws-codecommit';
-import { ICoreProject, RemoteZone, RemoteCodeRepo } from '.';
+import { ICoreProject, ICoreConsumerProject, ICoreAccount, RemoteZone, RemoteCodeRepo } from '.';
 import { Role, ServicePrincipal, ManagedPolicy, IRole } from '@aws-cdk/aws-iam';
 
 export interface ProjectStackProps extends StackProps {
@@ -11,6 +11,7 @@ export interface ProjectStackProps extends StackProps {
 
 export class ProjectStack extends Stack implements ICoreProject {
   readonly Scope: Construct;
+  readonly Accounts: ICoreAccount[];
   readonly Name: string;
   readonly Repo: Repository;
   readonly Zone: HostedZone;
@@ -23,6 +24,7 @@ export class ProjectStack extends Stack implements ICoreProject {
     const { tld } = props;
 
     this.Scope = app;
+    this.Accounts = [];
     this.Name = name;
 
     this.Repo = new Repository(this, 'CdkRepo', {
@@ -46,11 +48,10 @@ export class ProjectStack extends Stack implements ICoreProject {
     });
     RemoteCodeRepo.export('CoreProject', this.Repo);
     RemoteZone.export('CoreProject', this.Zone);
-    // TODO: Export for consumers cdk deploy
   }
 }
 
-export class ImportedProject extends Construct implements ICoreProject {
+export class ImportedProject extends Construct implements ICoreConsumerProject {
   readonly Scope: Construct;
   readonly Name: string;
   readonly Repo: IRepository;
@@ -58,12 +59,13 @@ export class ImportedProject extends Construct implements ICoreProject {
   readonly CdkMasterRole: IRole;
   readonly CdkMasterRoleStaticArn: string;
 
-  constructor(scope: Construct) {
+  constructor(scope: Construct, account: string) {
     super(scope, 'Core-Project');
 
     this.Scope = scope;
     this.Name = Fn.importValue('CoreProjectName');
     this.Repo = RemoteCodeRepo.import(this, 'CoreProject', 'CdkRepo');
     this.Zone = RemoteZone.import(this, 'CoreProject', 'RootZone');
+    this.CdkMasterRoleStaticArn = `arn:aws:iam::${account}:role/Core-CdkMaster-Role`;
   }
 }

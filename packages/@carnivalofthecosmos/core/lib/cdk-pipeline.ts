@@ -111,6 +111,7 @@ export class CdkPipeline extends Construct {
     this.Pipeline = new Pipeline(this, 'CdkPipeline', {
       pipelineName: name,
       artifactBucket: artifactBucket,
+      role: deployRole,
       stages: [
         {
           stageName: 'Source',
