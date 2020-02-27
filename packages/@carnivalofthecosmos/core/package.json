@@ -1,6 +1,6 @@
 {
   "name": "@carnivalofthecosmos/core",
-  "version": "0.0.1-alpha.25",
+  "version": "0.0.1-alpha.26",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
@@ -34,8 +34,8 @@
     "@aws-cdk/aws-ecs": "^1.23.0",
     "@aws-cdk/aws-elasticloadbalancingv2": "^1.23.0",
     "@aws-cdk/aws-elasticloadbalancingv2-targets": "^1.23.0",
-    "@aws-cdk/aws-route53": "^1.23.0",
     "@aws-cdk/aws-iam": "^1.23.0",
+    "@aws-cdk/aws-route53": "^1.23.0",
     "@aws-cdk/core": "^1.23.0"
   },
   "devDependencies": {
@@ -49,8 +49,8 @@
     "@aws-cdk/aws-ecs": "1.23.0",
     "@aws-cdk/aws-elasticloadbalancingv2": "1.23.0",
     "@aws-cdk/aws-elasticloadbalancingv2-targets": "1.23.0",
-    "@aws-cdk/aws-route53": "1.23.0",
     "@aws-cdk/aws-iam": "1.23.0",
+    "@aws-cdk/aws-route53": "1.23.0",
     "@aws-cdk/core": "1.23.0",
     "@types/jest": "^24.0.22",
     "@types/node": "^10.17.5",
