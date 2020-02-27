@@ -31,7 +31,7 @@ export class AccountStack extends Stack implements ICoreAccount {
     // If cross account then create cross account role
     if (this.Project.account !== this.account) {
       this.CdkCrossAccountRole = new Role(this, 'CdkCrossAccountRole', {
-        roleName: `Core-${this.Name}-CdkCrossAccount-Role`,
+        roleName: `Core-CdkCrossAccount-Role`,
         assumedBy: new ArnPrincipal(this.Project.CdkMasterRoleStaticArn),
       });
       this.CdkCrossAccountRole.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess'));
