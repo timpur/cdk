@@ -12,7 +12,8 @@ import {
   IApplicationLoadBalancer,
   IApplicationListener,
 } from '@aws-cdk/aws-elasticloadbalancingv2';
-import { IProject, Project } from '@aws-cdk/aws-codebuild';
+import { Project } from '@aws-cdk/aws-codebuild';
+import { Role } from '@aws-cdk/aws-iam';
 import {
   ICoreAccount,
   ICoreCiCd,
@@ -23,9 +24,6 @@ import {
   RemoteApplicationListener,
   CdkPipeline,
 } from '.';
-import { RemoteBuildProject } from './remote';
-import { throws } from 'assert';
-import { Role } from '@aws-cdk/aws-ec2/node_modules/@aws-cdk/aws-iam';
 
 export interface CiCdStackProps extends StackProps {
   networkBuilder: NetworkBuilder;
