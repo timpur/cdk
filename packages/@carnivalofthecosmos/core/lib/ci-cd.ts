@@ -24,6 +24,7 @@ import {
   CdkPipeline,
 } from '.';
 import { RemoteBuildProject } from './remote';
+import { throws } from 'assert';
 
 export interface CiCdStackProps extends StackProps {
   networkBuilder: NetworkBuilder;
@@ -37,7 +38,7 @@ export class CiCdStack extends Stack implements ICoreCiCd {
   readonly Cluster: Cluster;
   readonly Alb: ApplicationLoadBalancer;
   readonly HttpListener: ApplicationListener;
-  readonly DeployProject: Project;
+  readonly CdkDeploy: Project;
 
   constructor(account: ICoreAccount, props: CiCdStackProps) {
     super(account.Project.Scope, `Core-${account.Name}-CiCd`);
@@ -98,30 +99,32 @@ export class CiCdStack extends Stack implements ICoreCiCd {
     const pipeline = new CdkPipeline(this, 'CdkPipeline', {
       name: 'Core-Cdk-Pipeline',
       cdkRepo: this.Account.Project.Repo,
+      deployRole: this.Account.Project.CdkMasterRole,
+      // deployVpc: this.Vpc,
       deployEnvs: {
-        NPM_REGISTRY_API_KEY: { value: 'TODO: Key here' },
+        NPM_REGISTRY_API_KEY: { value: 'TODO: Remove This' },
       },
       deployStacks: [`Core-*`],
     });
-    this.DeployProject = pipeline.Deploy;
+    this.CdkDeploy = pipeline.Deploy;
 
-    // TODO: get the right roles !!
-    const addBuildManagedPolicy = (name: string) => {
-      pipeline.Deploy.role?.addManagedPolicy({ managedPolicyArn: `arn:aws:iam::aws:policy/${name}` });
-    };
-    // addBuildManagedPolicy('AWSCloudFormationFullAccess');
-    // addBuildManagedPolicy('AmazonRoute53FullAccess');
-    // addBuildManagedPolicy('AmazonECS_FullAccess');
-    // addBuildManagedPolicy('AmazonVPCFullAccess');
-    // addBuildManagedPolicy('AmazonEC2FullAccess');
-    addBuildManagedPolicy('AdministratorAccess'); // FIXME:
+    // // TODO: get the right roles !!
+    // const addBuildManagedPolicy = (name: string) => {
+    //   pipeline.Deploy.role?.addManagedPolicy({ managedPolicyArn: `arn:aws:iam::aws:policy/${name}` });
+    // };
+    // // addBuildManagedPolicy('AWSCloudFormationFullAccess');
+    // // addBuildManagedPolicy('AmazonRoute53FullAccess');
+    // // addBuildManagedPolicy('AmazonECS_FullAccess');
+    // // addBuildManagedPolicy('AmazonVPCFullAccess');
+    // // addBuildManagedPolicy('AmazonEC2FullAccess');
+    // addBuildManagedPolicy('AdministratorAccess'); // FIXME:
 
     RemoteVpc.export(`Core${this.Account.Name}${this.Name}`, this.Vpc);
     RemoteZone.export(`Core${this.Account.Name}${this.Name}`, this.Zone);
     RemoteCluster.export(`Core${this.Account.Name}${this.Name}`, this.Cluster);
     RemoteAlb.export(`Core${this.Account.Name}${this.Name}`, this.Alb);
     RemoteApplicationListener.export(`Core${this.Account.Name}${this.Name}`, this.HttpListener);
-    RemoteBuildProject.export(`Core${this.Account.Name}${this.Name}`, this.DeployProject);
+    // RemoteBuildProject.export(`Core${this.Account.Name}${this.Name}`, this.CdkDeploy);
   }
 }
 
@@ -133,7 +136,7 @@ export class ImportedCiCd extends Construct implements ICoreCiCd {
   readonly Cluster: ICluster;
   readonly Alb: IApplicationLoadBalancer;
   readonly HttpListener: IApplicationListener;
-  readonly DeployProject: IProject;
+  // readonly CdkDeploy: IProject;
 
   constructor(scope: Construct, account: ICoreAccount) {
     super(scope, `Core-${account.Name}-CiCd`);
@@ -146,6 +149,6 @@ export class ImportedCiCd extends Construct implements ICoreCiCd {
     this.Cluster = RemoteCluster.import(this, `Core${this.Account.Name}${this.Name}`, 'Cluster', this.Vpc);
     this.Alb = RemoteAlb.import(this, `Core${this.Account.Name}${this.Name}`, 'Alb');
     this.HttpListener = RemoteApplicationListener.import(this, `Core${this.Account.Name}${this.Name}`, 'HttpListener');
-    this.DeployProject = RemoteBuildProject.import(this, `Core${this.Account.Name}${this.Name}`, 'CdkPipeline');
+    // this.CdkDeploy = RemoteBuildProject.import(this, `Core${this.Account.Name}${this.Name}`, 'CdkPipelineDeploy');
   }
 }

@@ -1,7 +1,7 @@
 import { Construct, RemovalPolicy, PhysicalName } from '@aws-cdk/core';
 import { Bucket, BucketEncryption } from '@aws-cdk/aws-s3';
 import { IRepository } from '@aws-cdk/aws-codecommit';
-import { Pipeline, Artifact, IPipeline, StageOptions } from '@aws-cdk/aws-codepipeline';
+import { Pipeline, Artifact, StageOptions } from '@aws-cdk/aws-codepipeline';
 import {
   CodeCommitSourceAction,
   CodeBuildAction,
@@ -19,6 +19,7 @@ import {
   IProject,
 } from '@aws-cdk/aws-codebuild';
 import { IRole } from '@aws-cdk/aws-iam';
+import { IVpc } from '@aws-cdk/aws-ec2';
 import { IConsumerAppEnv } from './interfaces';
 
 export interface BuildEnvironmentVariables {
@@ -30,6 +31,7 @@ export interface CdkPipelineProps {
   cdkRepo: IRepository;
   cdkBranch?: string;
   deployRole?: IRole;
+  deployVpc?: IVpc;
   deployEnvs?: BuildEnvironmentVariables;
   deployStacks?: string[];
 }
@@ -46,6 +48,7 @@ export class CdkPipeline extends Construct {
       cdkRepo,
       cdkBranch = 'master',
       deployRole = undefined,
+      deployVpc = undefined,
       deployEnvs = undefined,
       deployStacks = [],
     } = props;
@@ -58,6 +61,7 @@ export class CdkPipeline extends Construct {
     this.Deploy = new Project(this, 'CdkDeploy', {
       projectName: `${name}Deploy`,
       role: deployRole,
+      vpc: deployVpc,
       source: Source.codeCommit({
         repository: cdkRepo,
         branchOrRef: cdkBranch,

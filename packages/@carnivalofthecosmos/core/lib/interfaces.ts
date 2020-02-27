@@ -5,20 +5,29 @@ import { IVpc } from '@aws-cdk/aws-ec2';
 import { ICluster } from '@aws-cdk/aws-ecs';
 import { IApplicationLoadBalancer, IApplicationListener } from '@aws-cdk/aws-elasticloadbalancingv2';
 import { IProject } from '@aws-cdk/aws-codebuild';
+import { IRole } from '@aws-cdk/aws-iam';
 
 export interface INamespace extends Construct {
   Name: string;
 }
 
+export interface IEnv {
+  account?: string;
+  region?: string;
+}
+
 // Core Interfaces
-export interface ICoreProject extends INamespace {
+export interface ICoreProject extends INamespace, IEnv {
   Scope: Construct;
   Repo: IRepository;
   Zone: IHostedZone;
+  CdkMasterRole: IRole;
+  CdkMasterRoleStaticArn: string;
 }
 
 export interface ICoreAccount extends INamespace {
   Project: ICoreProject;
+  CdkCrossAccountRole?: IRole;
 }
 
 export interface ICoreAppEnv extends INamespace {
@@ -35,7 +44,7 @@ export interface ICoreEcsAppEnv extends ICoreAppEnv {
 }
 
 export interface ICoreCiCd extends ICoreEcsAppEnv {
-  DeployProject: IProject;
+  CdkDeploy?: IProject;
 }
 
 // Consumer Interfaces
