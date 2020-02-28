@@ -14,6 +14,9 @@
     "url": "https://github.com/carnivalofthecosmos/cdk.git",
     "directory": "packages/@carnivalofthecosmos/pipeline"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
