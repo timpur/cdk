@@ -150,10 +150,11 @@ export class CdkPipeline extends Construct {
 export const addCdkDeployEnvStageToPipeline = (props: {
   pipeline: Pipeline;
   deployProject: IProject;
+  deployEnvs?: BuildEnvironmentVariables;
   appEnv: IConsumerAppEnv;
   isManualApprovalRequired?: boolean;
 }) => {
-  const { deployProject, appEnv, pipeline, isManualApprovalRequired = true } = props || {};
+  const { pipeline, deployProject, deployEnvs = {}, appEnv, isManualApprovalRequired = true } = props || {};
   const projectName = appEnv.Account.Project.Name;
   const accountName = appEnv.Account.Name;
   const appEnvName = appEnv.Name;
@@ -182,6 +183,7 @@ export const addCdkDeployEnvStageToPipeline = (props: {
         input: cdkOutputArtifact,
         runOrder: 2,
         environmentVariables: {
+          ...deployEnvs,
           STACKS: {
             type: BuildEnvironmentVariableType.PLAINTEXT,
             value: `App-${projectName}-${accountName}-${appEnvName}-*`,

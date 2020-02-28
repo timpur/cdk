@@ -3,8 +3,16 @@ import { Bucket, BucketEncryption } from '@aws-cdk/aws-s3';
 import { IRepository } from '@aws-cdk/aws-codecommit';
 import { Pipeline, Artifact } from '@aws-cdk/aws-codepipeline';
 import { CodeCommitSourceAction, CodeBuildAction } from '@aws-cdk/aws-codepipeline-actions';
-import { Project, BuildSpec, LinuxBuildImage, BuildEnvironmentVariable, Source } from '@aws-cdk/aws-codebuild';
+import {
+  Project,
+  BuildSpec,
+  LinuxBuildImage,
+  BuildEnvironmentVariable,
+  Source,
+  BuildEnvironmentVariableType,
+} from '@aws-cdk/aws-codebuild';
 import { IRole } from '@aws-cdk/aws-iam';
+import { NPM_RUN_BUILD, ECR_LOGIN, NPM_INSTALL, NPM_EXPORT_APP_BUILD_VERSION } from './commands';
 
 export interface BuildEnvironmentVariables {
   [key: string]: BuildEnvironmentVariable;
@@ -16,7 +24,7 @@ export interface AppNodePipelineProps {
   codeBranch?: string;
   buildRole?: IRole;
   buildEnvs?: BuildEnvironmentVariables;
-  buildCommands?: string[];
+  buildSpec?: { [key: string]: any };
 }
 
 export class AppNodePipeline extends Construct {
@@ -32,7 +40,7 @@ export class AppNodePipeline extends Construct {
       codeBranch = 'master',
       buildRole = undefined,
       buildEnvs = undefined,
-      buildCommands = ['npm run build'],
+      buildSpec = AppNodePipeline.DefaultBuildSpec(),
     } = props;
 
     const artifactBucket = new Bucket(this, 'CodeArtifactBucket', {
@@ -47,22 +55,7 @@ export class AppNodePipeline extends Construct {
         repository: codeRepo,
         branchOrRef: codeBranch,
       }),
-      buildSpec: BuildSpec.fromObject({
-        version: '0.2',
-        phases: {
-          install: {
-            'runtime-versions': {
-              nodejs: '12',
-            },
-          },
-          pre_build: {
-            commands: ['$(aws ecr get-login --no-include-email)', 'npm ci'],
-          },
-          build: {
-            commands: buildCommands,
-          },
-        },
-      }),
+      buildSpec: BuildSpec.fromObject(buildSpec),
       environment: {
         buildImage: LinuxBuildImage.STANDARD_3_0,
         environmentVariables: buildEnvs,
@@ -84,6 +77,7 @@ export class AppNodePipeline extends Construct {
               repository: codeRepo,
               branch: codeBranch,
               output: sourceOutput,
+              variablesNamespace: 'CodeCheckout',
             }),
           ],
         },
@@ -94,10 +88,45 @@ export class AppNodePipeline extends Construct {
               actionName: 'CodeBuild',
               project: this.Build,
               input: sourceOutput,
+              variablesNamespace: 'CodeBuild',
             }),
           ],
         },
       ],
     });
+  }
+
+  static DefaultBuildSpec() {
+    return {
+      version: '0.2',
+      phases: {
+        install: {
+          'runtime-versions': {
+            nodejs: '12',
+          },
+        },
+        pre_build: {
+          commands: [ECR_LOGIN, NPM_INSTALL, NPM_EXPORT_APP_BUILD_VERSION],
+        },
+        build: {
+          commands: [NPM_RUN_BUILD],
+        },
+        post_build: {
+          commands: [],
+        },
+      },
+      env: {
+        'exported-variables': ['APP_BUILD_VERSION'],
+      },
+    };
+  }
+
+  static DefaultAppBuildVersionStageEnv() {
+    return {
+      APP_BUILD_VERSION: {
+        type: BuildEnvironmentVariableType.PLAINTEXT,
+        value: '#{CodeBuild.APP_BUILD_VERSION}',
+      },
+    };
   }
 }
