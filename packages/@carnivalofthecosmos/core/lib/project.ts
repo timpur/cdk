@@ -2,7 +2,13 @@ import { Construct, Stack, StackProps, CfnOutput, Fn, Environment } from '@aws-c
 import { HostedZone, IHostedZone } from '@aws-cdk/aws-route53';
 import { IRepository, Repository } from '@aws-cdk/aws-codecommit';
 import { ICoreProject, ICoreConsumerProject, ICoreAccount, RemoteZone, RemoteCodeRepo } from '.';
-import { Role, ServicePrincipal, ManagedPolicy, IRole } from '@aws-cdk/aws-iam';
+import {
+  Role,
+  ServicePrincipal,
+  ManagedPolicy,
+  IRole,
+  CompositePrincipal,
+} from '@aws-cdk/aws-iam';
 
 export interface ProjectStackProps extends StackProps {
   tld: string;
@@ -37,7 +43,10 @@ export class ProjectStack extends Stack implements ICoreProject {
 
     this.CdkMasterRole = new Role(this, 'CdkMasterRole', {
       roleName: 'Core-CdkMaster-Role',
-      assumedBy: new ServicePrincipal('codebuild.amazonaws.com'),
+      assumedBy: new CompositePrincipal(
+        new ServicePrincipal('codebuild.amazonaws.com'),
+        new ServicePrincipal('codepipeline.amazonaws.com'),
+      ),
     });
     this.CdkMasterRole.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess'));
     this.CdkMasterRoleStaticArn = `arn:aws:iam::${this.account}:role/Core-CdkMaster-Role`;

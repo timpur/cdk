@@ -46,7 +46,13 @@ export class ConsumerAccountStack extends Stack implements IConsumerAccount {
   readonly Core: ICoreConsumerAccount;
 
   constructor(project: ConsumerProjectStack, name: string, props?: StackProps) {
-    super(project.Scope, `App-${project.Name}-${name}-Account`, props);
+    super(project.Scope, `App-${project.Name}-${name}-Account`, {
+      ...props,
+      env: {
+        account: props?.env?.account || project.account,
+        region: props?.env?.region || project.region,
+      },
+    });
 
     this.Project = project;
     this.Name = name;
@@ -60,7 +66,13 @@ export class ConsumerAppEnvStack extends Stack implements IConsumerAppEnv {
   readonly Core: ICoreConsumerAppEnv;
 
   constructor(account: ConsumerAccountStack, name: string, props?: StackProps) {
-    super(account.Project.Scope, `App-${account.Project.Name}-${account.Name}-${name}-AppEnv`, props);
+    super(account.Project.Scope, `App-${account.Project.Name}-${account.Name}-${name}-AppEnv`, {
+      ...props,
+      env: {
+        account: props?.env?.account || account.account,
+        region: props?.env?.region || account.region,
+      },
+    });
 
     this.Account = account;
     this.Name = name;
@@ -88,7 +100,13 @@ export class ConsumerCiCdStack extends Stack implements IConsumerCiCd {
   readonly DeployProject: IProject;
 
   constructor(account: ConsumerAccountStack, props?: StackProps) {
-    super(account.Project.Scope, `App-${account.Project.Name}-${account.Name}-CiCd`, props);
+    super(account.Project.Scope, `App-${account.Project.Name}-${account.Name}-CiCd`, {
+      ...props,
+      env: {
+        account: props?.env?.account || account.account,
+        region: props?.env?.region || account.region,
+      },
+    });
 
     this.Account = account;
     this.Name = 'Ci';
