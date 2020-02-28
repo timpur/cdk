@@ -1,6 +1,4 @@
-import { Aws } from '@aws-cdk/core';
-
-export const ECR_LOGIN = `$(aws ecr get-login --no-include-email --region ${Aws.REGION})`;
+export const ECR_LOGIN = '$(aws ecr get-login --no-include-email --region ${AWS_REGION})';
 
 export const NPM_INSTALL = 'npm ci';
 
